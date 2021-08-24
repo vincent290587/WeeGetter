@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:file_picker_cross/file_picker_cross.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -47,7 +49,7 @@ Future<void> getDailyEvent() async {
   if (response.statusCode != 200) {
     // If the server did not return a 201 CREATED response,
     // then throw an exception.
-    print('Failed to create calendar entry.');
+    print('Failed to get calendar events');
     //print(workoutToIcuJson(workout, date).toString());
   } else {
     debugPrint('Response: ${response.contentLength}');
@@ -57,43 +59,67 @@ Future<void> getDailyEvent() async {
 
     for (var item in listJsons) {
 
-      Album album = Album.fromJson(item);
-      debugPrint('Body: ${album.toString()}');
+      IntervalsCalendar event = IntervalsCalendar.fromJson(item);
+      //debugPrint('Body: ${album.toString()}');
+      if (event.startDate.contains(strTime) &&
+          event.category == 'WORKOUT') {
+
+        debugPrint('Match -- ${event.toString()}');
+
+        getEvent(event);
+      }
     }
   }
 }
-//
-// Future<void> postWeekCalendar(BuildContext context, PlannedWeek week) async {
-//
-//   Future<DateTime?> selectedDate = showDatePicker(
-//     context: context,
-//     initialDate: DateTime.now(),
-//     firstDate: DateTime(2018),
-//     lastDate: DateTime(2030),
-//   );
-//
-//   DateTime? time = await selectedDate;
-//
-//   if (time == null) return;
-//
-//   for (var workout in week.workouts) {
-//     String date = time!.toIso8601String();
-//     print('Date upload: ${date}');
-//     //print(workoutToIcuJson(workout, date).toString());
-//     await postSingleCalendar(workout, date); //
-//     time = time.add(Duration(days: 1));
-//   }
-// }
 
-class Album {
+Future<void> getEvent(IntervalsCalendar event) async {
+
+  debugPrint('Getting eventID: ${event.eventId}');
+  Uri uri = Uri.parse('https://intervals.icu/api/v1/athlete/${athleteID}/events/${event.eventId}/download.zwo');
+
+  final response = await http.get(
+    uri,
+    // Send authorization headers to the backend.
+    headers: {
+      HttpHeaders.contentTypeHeader: "application/json",
+      HttpHeaders.authorizationHeader: 'Basic ${auth_key}',
+    },
+  );
+
+  debugPrint('Response code: ${response.statusCode}');
+  if (response.statusCode != 200) {
+    // If the server did not return a 201 CREATED response,
+    // then throw an exception.
+    print('Failed to get event');
+    //print(workoutToIcuJson(workout, date).toString());
+  } else {
+    debugPrint('Response: ${response.contentLength}');
+    debugPrint('Body: ${response.body}');
+
+    int index = response.body.indexOf('<workout_file>');
+    String wko = response.body.substring(index);
+
+    FilePickerCross myFile  = FilePickerCross(Uint8List.fromList(wko.codeUnits),
+        path: '',
+        type: FileTypeCross.custom,
+        fileExtension: 'zwo');
+
+    // for sharing to other apps you can also specify optional `text` and `subject`
+    await myFile.exportToStorage();
+  }
+}
+
+class IntervalsCalendar {
   final int eventId;
   final String name;
   final String startDate;
+  final String category;
 
-  Album({
+  IntervalsCalendar({
     required this.eventId,
     required this.name,
     required this.startDate,
+    required this.category,
   });
 
   String toString() {
@@ -101,19 +127,12 @@ class Album {
     return ret;
   }
 
-  factory Album.fromJson(Map<String, dynamic> json) {
-    return Album(
+  factory IntervalsCalendar.fromJson(Map<String, dynamic> json) {
+    return IntervalsCalendar(
       eventId: json['id'],
       name: json['name'],
       startDate: json['start_date_local'],
+      category : json['category'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': eventId,
-      'name': name,
-      'start_date_local': startDate,
-    };
   }
 }
