@@ -1,0 +1,24 @@
+{
+  "name": "wee_getter",
+  "version": "1.0.0",
+  "description": "intervals.cu calendar workout getter",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vincent290587/wee_getter.git"
+  },
+  "keywords": [
+    "intervals.cu",
+    "zwift",
+    "workout"
+  ],
+  "author": "Vincent Golle",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vincent290587/wee_getter/issues"
+  },
+  "homepage": "https://github.com/vincent290587/wee_getter#readme"
+}
