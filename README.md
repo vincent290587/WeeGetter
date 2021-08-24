@@ -1,16 +1,17 @@
 # wee_getter
 
-A new Flutter project.
+A simple GUI to download your Zwift workout of the day from the great almighty https://intervals.icu/
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Create your own keys.dart file containing your login information:
 
-A few resources to get you started if this is your first Flutter project:
+```dart
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+const String athleteID = 'i12345';
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+const String auth_key = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+
+```
+
+Compile and run !
