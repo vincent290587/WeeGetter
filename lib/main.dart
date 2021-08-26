@@ -64,6 +64,19 @@ class _MyHomePageState extends State<MyHomePage> {
     getDailyEvent();
   }
 
+  void _getAllworkouts() {
+    setState(() {
+      // This call to setState tells the Flutter framework that something has
+      // changed in this State, which causes it to rerun the build method below
+      // so that the display can reflect the updated values. If we changed
+      // _counter without calling setState(), then the build method would not be
+      // called again, and so nothing would appear to happen.
+      //_counter++;
+    });
+
+    getWorkoutList();
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -113,10 +126,23 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: Icon(Icons.download),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton(
+            onPressed: _incrementCounter,
+            tooltip: 'Get today\'s workout',
+            child: Icon(Icons.download),
+          ),
+          SizedBox(
+            height: 8,
+          ),
+          FloatingActionButton(
+            onPressed: getWorkoutList,
+            tooltip: 'Get all workouts',
+            child: Icon(Icons.category),
+          ),
+        ],
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }

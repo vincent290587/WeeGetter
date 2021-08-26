@@ -7,6 +7,7 @@ import 'package:file_picker_cross/file_picker_cross.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 import 'keys.dart';
 
@@ -72,6 +73,34 @@ Future<void> getDailyEvent() async {
   }
 }
 
+Future<void> saveFile(IcuWorkout wko, String body) async {
+
+  int index = body.indexOf('<workout_file>');
+  String wkoBody = body.substring(index);
+
+  // FilePickerCross myFile  = FilePickerCross(Uint8List.fromList(wko.codeUnits),
+  //     path: '',
+  //     type: FileTypeCross.custom,
+  //     fileExtension: 'zwo');
+
+  // for sharing to other apps you can also specify optional `text` and `subject`
+  // await myFile.exportToStorage();
+
+  final directory = await getApplicationDocumentsDirectory();
+  var endDir = await Directory('${directory.path}/WeeGetter').create(recursive: false);
+
+  String fname = wko.name.
+    replaceAll(' - ', '__').
+    replaceAll(' ', '_').
+    replaceAll('/', '-').
+    replaceAll('\'', '').
+    replaceAll('?', '').
+    replaceAll(':', '');
+  fname += '.zwo';
+  File myFile = File('${endDir.path}/${fname}');
+  myFile.writeAsBytesSync(Uint8List.fromList(wkoBody.codeUnits));
+}
+
 Future<void> getEvent(IntervalsCalendar event) async {
 
   debugPrint('Getting eventID: ${event.eventId}');
@@ -93,19 +122,14 @@ Future<void> getEvent(IntervalsCalendar event) async {
     print('Failed to get event');
     //print(workoutToIcuJson(workout, date).toString());
   } else {
-    debugPrint('Response: ${response.contentLength}');
-    debugPrint('Body: ${response.body}');
+    //debugPrint('Response: ${response.contentLength}');
+    //debugPrint('Body: ${response.body}');
 
-    int index = response.body.indexOf('<workout_file>');
-    String wko = response.body.substring(index);
-
-    FilePickerCross myFile  = FilePickerCross(Uint8List.fromList(wko.codeUnits),
-        path: '',
-        type: FileTypeCross.custom,
-        fileExtension: 'zwo');
-
-    // for sharing to other apps you can also specify optional `text` and `subject`
-    await myFile.exportToStorage();
+    IcuWorkout wko = IcuWorkout(
+      name: event.name,
+      workoutId: event.eventId,
+    );
+    await saveFile(wko, response.body);
   }
 }
 
@@ -135,4 +159,94 @@ class IntervalsCalendar {
       category : json['category'],
     );
   }
+}
+
+// GET /api/v1/athlete/{id}/workouts List all workouts (excluding those shared by others)
+// GET /api/v1/athlete/{id}/workouts/{workoutId} Get a workout
+// POST /api/v1/download-workout{ext}
+
+Future<void> getWorkoutZwo(IcuWorkout event, dynamic payload) async {
+
+  debugPrint('Found WKO: ${event.toString()}');
+
+  Uri uri = Uri.parse('https://intervals.icu/api/v1/download-workout.zwo');
+
+  final response = await http.post(
+    uri,
+    // Send authorization headers to the backend.
+    headers: {
+      HttpHeaders.contentTypeHeader: "application/json",
+      HttpHeaders.authorizationHeader: 'Basic ${auth_key}',
+    },
+    body: jsonEncode(payload),
+  );
+
+  if (response.statusCode != 200) {
+    // If the server did not return a 201 CREATED response,
+    // then throw an exception.
+    print('Failed to get workout');
+    //print(workoutToIcuJson(workout, date).toString());
+  } else {
+    //debugPrint('Response: ${response.contentLength}');
+    //debugPrint('Body: ${response.body}');
+
+    saveFile(event, response.body);
+  }
+}
+
+Future<void> getWorkoutList() async {
+
+  Uri uri = Uri.parse('https://intervals.icu/api/v1/athlete/${athleteID}/workouts');
+
+  final response = await http.get(
+    uri,
+    // Send authorization headers to the backend.
+    headers: {
+      HttpHeaders.contentTypeHeader: "application/json",
+      HttpHeaders.authorizationHeader: 'Basic ${auth_key}',
+    },
+  );
+
+  debugPrint('Response code: ${response.statusCode}');
+  if (response.statusCode != 200) {
+    // If the server did not return a 201 CREATED response,
+    // then throw an exception.
+    print('Failed to get workout list');
+    //print(workoutToIcuJson(workout, date).toString());
+  } else {
+    //debugPrint('Response: ${response.contentLength}');
+    //debugPrint('Body: ${response.body}');
+
+    List<dynamic> listJsons = jsonDecode(response.body);
+
+    for (var item in listJsons) {
+
+      IcuWorkout event = IcuWorkout.fromJson(item);
+      getWorkoutZwo(event, item);
+    }
+  }
+}
+
+
+class IcuWorkout {
+  final int workoutId;
+  final String name;
+
+  IcuWorkout({
+    required this.workoutId,
+    required this.name,
+  });
+
+  String toString() {
+    String ret = 'WKO name: ${name} ID: ${workoutId}';
+    return ret;
+  }
+
+  factory IcuWorkout.fromJson(Map<String, dynamic> json) {
+    return IcuWorkout(
+      workoutId: json['id'],
+      name: json['name'],
+    );
+  }
+
 }
